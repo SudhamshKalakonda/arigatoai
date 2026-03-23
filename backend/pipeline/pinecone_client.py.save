@@ -1,0 +1,25 @@
+import os
+from dotenv import load_dotenv
+from pinecone import Pinecone
+
+load_dotenv()
+
+_client = None
+_index = None
+
+def get_index():
+    global _client, _index
+    if _index is None:
+        _client = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        _index = _client.Index(os.getenv("PINECONE_INDEX_NAME"))
+    return _index
+
+def upsert_vectors(vectors: list[dict]):
+    index = get_index()
+    index.upsert(vectors=vectors)
+    print(f"Upserted {len(vectors)} vectors to Pinecone")
+
+def query_vectors(query_embedding: list[float], top_k: int = 10, filter: dict = None):
+    index = get_index()
+    results = index.query(
+        vec
