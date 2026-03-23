@@ -1,0 +1,168 @@
+(function() {
+  const API_URL = 'http://localhost:8000/api/ask';
+  const WIDGET_KEY = new URLSearchParams(document.currentScript.src.split('?')[1]).get('key') || 'arigato';
+
+  // Inject styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #arigatoai-btn {
+      position: fixed; bottom: 24px; right: 24px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #2563eb; color: white; border: none;
+      font-size: 24px; cursor: pointer; z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #arigatoai-btn:hover { background: #1d4ed8; }
+    #arigatoai-box {
+      position: fixed; bottom: 92px; right: 24px;
+      width: 360px; height: 500px;
+      background: white; border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: none; flex-direction: column;
+      z-index: 9999; font-family: sans-serif;
+      overflow: hidden;
+    }
+    #arigatoai-box.open { display: flex; }
+    #arigatoai-header {
+      background: #2563eb; color: white;
+      padding: 16px; font-weight: 600; font-size: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #arigatoai-header span { font-size: 12px; opacity: 0.8; font-weight: 400; }
+    #arigatoai-close { cursor: pointer; font-size: 20px; background: none; border: none; color: white; }
+    #arigatoai-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .ai-msg, .user-msg {
+      max-width: 85%; padding: 10px 14px;
+      border-radius: 12px; font-size: 14px; line-height: 1.5;
+    }
+    .ai-msg { background: #f1f5f9; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .user-msg { background: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .ai-sources { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .typing { display: flex; gap: 4px; padding: 10px 14px; background: #f1f5f9; border-radius: 12px; align-self: flex-start; }
+    .typing span { width: 8px; height: 8px; background: #94a3b8; border-radius: 50%; animation: bounce 1.2s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+    #arigatoai-input-row {
+      padding: 12px; border-top: 1px solid #e2e8f0;
+      display: flex; gap: 8px;
+    }
+    #arigatoai-input {
+      flex: 1; padding: 10px 14px; border: 1px solid #e2e8f0;
+      border-radius: 24px; font-size: 14px; outline: none;
+    }
+    #arigatoai-input:focus { border-color: #2563eb; }
+    #arigatoai-send {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #2563eb; color: white; border: none;
+      cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #arigatoai-send:hover { background: #1d4ed8; }
+    #arigatoai-branding {
+      text-align: center; font-size: 11px; color: #94a3b8;
+      padding: 6px; border-top: 1px solid #f1f5f9;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Build HTML
+  document.body.insertAdjacentHTML('beforeend', `
+    <button id="arigatoai-btn" title="Ask a tax question">💬</button>
+    <div id="arigatoai-box">
+      <div id="arigatoai-header">
+        <div>
+          ArigatoAI
+          <br><span>Ask any tax or compliance question</span>
+        </div>
+        <button id="arigatoai-close">✕</button>
+      </div>
+      <div id="arigatoai-messages">
+        <div class="ai-msg">👋 Hi! I'm ArigatoAI. Ask me anything about income tax, GST, EPF, or TDS.</div>
+      </div>
+      <div id="arigatoai-input-row">
+        <input id="arigatoai-input" type="text" placeholder="Type your question..."/>
+        <button id="arigatoai-send">➤</button>
+      </div>
+      <div id="arigatoai-branding">Powered by ArigatoAI</div>
+    </div>
+  `);
+
+  // Logic
+  const btn = document.getElementById('arigatoai-btn');
+  const box = document.getElementById('arigatoai-box');
+  const closeBtn = document.getElementById('arigatoai-close');
+  const input = document.getElementById('arigatoai-input');
+  const send = document.getElementById('arigatoai-send');
+  const messages = document.getElementById('arigatoai-messages');
+
+  btn.onclick = () => box.classList.toggle('open');
+  closeBtn.onclick = () => box.classList.remove('open');
+
+  function addMessage(text, type, sources) {
+    const div = document.createElement('div');
+    div.className = type === 'user' ? 'user-msg' : 'ai-msg';
+    div.textContent = text;
+    if (sources && sources.length > 0) {
+      const s = document.createElement('div');
+      s.className = 'ai-sources';
+      s.textContent = '📎 ' + sources.map(u => new URL(u).hostname).join(', ');
+      div.appendChild(s);
+    }
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'typing';
+    div.id = 'arigatoai-typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('arigatoai-typing');
+    if (t) t.remove();
+  }
+
+  async function askQuestion() {
+    const q = input.value.trim();
+    if (!q) return;
+    input.value = '';
+    addMessage(q, 'user');
+    showTyping();
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, firm_id: WIDGET_KEY })
+      });
+      const data = await res.json();
+      hideTyping();
+      addMessage(data.answer, 'ai', data.sources);
+    } catch(e) {
+      hideTyping();
+      addMessage('Sorry, I could not connect. Please try again.', 'ai');
+    }
+  }
+
+  send.onclick = askQuestion;
+  input.onkeydown = (e) => { if (e.key === 'Enter') askQuestion(); };
+})();
+
+
+
+
+nano ~/arigatoai/widget/demo.html
+
+
+
+
+

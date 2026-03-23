@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arigato Consultancy Services Private Limited</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; color: #1a1a1a; }
+
+    nav {
+      background: white; padding: 16px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo h1 { font-size: 15px; font-weight: 800; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.5px; }
+    .nav-logo p { font-size: 12px; color: #00BFA5; font-style: italic; }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 500; }
+    .nav-links a:hover { color: #00BFA5; }
+
+    .hero {
+      background: #00BFA5; padding: 80px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -40px; left: 0; right: 0;
+      height: 80px; background: white;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+    .hero-text { max-width: 560px; }
+    .hero-text h2 { font-size: 38px; font-weight: 800; color: #1a1a1a; line-height: 1.2; margin-bottom: 20px; }
+    .hero-text p { font-size: 15px; color: #1a1a1a; opacity: 0.85; line-height: 1.8; margin-bottom: 32px; }
+    .hero-btn {
+      background: #1a1a1a; color: white; padding: 14px 32px;
+      border-radius: 8px; font-size: 15px; font-weight: 600;
+      text-decoration: none; display: inline-block;
+    }
+    .hero-graphic {
+      width: 380px; height: 300px; background: rgba(255,255,255,0.25);
+      border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hero-graphic svg { width: 180px; height: 180px; opacity: 0.9; }
+
+    .about { padding: 80px 48px; text-align: center; background: white; }
+    .about h2 { font-size: 26px; font-weight: 800; color: #00897B; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+    .section-line { width: 60px; height: 3px; background: #00897B; margin: 0 auto 28px; }
+    .about p { max-width: 900px; margin: 0 auto; font-size: 15px; line-height: 1.9; color: #444; }
+
+    .services { padding: 60px 48px 80px; background: #f4fdfb; }
+    .services h2 { text-align: center; font-size: 26px; font-weight: 800; color: #00897B; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+    .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
+    .service-card {
+      background: white; border-radius: 16px; padding: 32px 24px;
+      text-align: center; box-shadow: 0 2px 16px rgba(0,191,165,0.08);
+      border-top: 4px solid #00BFA5;
+    }
+    .service-icon {
+      width: 48px; height: 48px; background: #e0faf5;
+      border-radius: 12px; margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .service-icon svg { width: 24px; height: 24px; stroke: #00897B; fill: none; stroke-width: 2; }
+    .service-card h3 { font-size: 15px; font-weight: 700; color: #00897B; margin-bottom: 10px; }
+    .service-card p { font-size: 13px; color: #666; line-height: 1.7; }
+
+    footer { background: #1a1a1a; color: white; padding: 32px 48px; text-align: center; }
+    footer p { font-size: 13px; opacity: 0.7; margin-bottom: 4px; }
+    footer span { color: #00BFA5; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-logo">
+      <h1>Arigato Consultancy Services Pvt. Ltd.</h1>
+      <p>To be a part of your success story</p>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">Home</a></li>
+      <li><a href="#">About Us</a></li>
+      <li><a href="#">GST</a></li>
+      <li><a href="#">Knowledge Base</a></li>
+      <li><a href="#">Reach Us</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-text">
+      <h2>About Arigato Consultancy Services Private Limited</h2>
+      <p>We are a Tax and compliances consulting company established in 2022 and based at Hyderabad, Telangana. We offer services across Telangana, Andhra Pradesh, and Karnataka in Direct & Indirect Taxes, Corporate Law, Advisory & Consultancy, and Business Planning.</p>
+      <a href="#" class="hero-btn">Read More</a>
+    </div>
+    <div class="hero-graphic">
+      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="40" width="160" height="100" rx="8" fill="white" opacity="0.9"/>
+        <rect x="36" y="56" width="60" height="8" rx="4" fill="#00BFA5"/>
+        <rect x="36" y="72" width="128" height="6" rx="3" fill="#e0faf5"/>
+        <rect x="36" y="84" width="100" height="6" rx="3" fill="#e0faf5"/>
+        <rect x="36" y="96" width="120" height="6" rx="3" fill="#e0faf5"/>
+        <rect x="36" y="108" width="80" height="6" rx="3" fill="#e0faf5"/>
+        <rect x="36" y="124" width="48" height="10" rx="5" fill="#00BFA5"/>
+        <circle cx="160" cy="30" r="20" fill="white" opacity="0.3"/>
+        <circle cx="40" cy="20" r="12" fill="white" opacity="0.2"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="about">
+    <h2>About Us</h2>
+    <div class="section-line"></div>
+    <p>We are a Tax and compliances consulting company established in 2022 and based at Hyderabad, Telangana. We offer services in Telangana, Andhra Pradesh, Karnataka across multiple disciplines like Direct & Indirect Taxes, Corporate Law, Advisory & Consultancy, Business Planning, etc. We ensure that we take care of all the legal compliances of our clients so that we can be a partner for them in growing their businesses and be a part of their success story.</p>
+  </div>
+
+  <div class="services">
+    <h2>Our Services</h2>
+    <div class="section-line"></div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4M15 10l4 4-4 4M12 3v18"/></svg>
+        </div>
+        <h3>Income Tax</h3>
+        <p>ITR filing, tax planning, and refund assistance for individuals and businesses.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6"/></svg>
+        </div>
+        <h3>GST Services</h3>
+        <p>Registration, return filing, and GST compliance for all types of businesses.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+        </div>
+        <h3>Company Law</h3>
+        <p>Company registration, ROC filings, and MCA compliance services.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>Advisory & Consultancy</h3>
+        <p>Business planning, financial advisory, and strategic consulting services.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        </div>
+        <h3>TDS Compliance</h3>
+        <p>TDS filing, Form 16 issuance, and TDS return management.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>EPF & ESIC</h3>
+        <p>Employee provident fund registration, filing, and compliance management.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2024 <span>Arigato Consultancy Services Private Limited</span>. All rights reserved.</p>
+    <p>Hyderabad, Telangana | Andhra Pradesh | Karnataka</p>
+  </footer>
+
+  <script src="http://localhost:8000/widget.js?key=arigato"></script>
+</body>
+</html>
