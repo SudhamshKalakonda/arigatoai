@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.routes.ask import router as ask_router
+from pipeline.scheduler import start_scheduler
 import os
 
 app = FastAPI(
@@ -33,3 +34,7 @@ def widget_js():
 @app.get("/demo")
 def demo():
     return FileResponse(os.path.join(WIDGET_DIR, "demo.html"), media_type="text/html")
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
