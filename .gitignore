@@ -1,0 +1,24 @@
+# Environment variables — NEVER commit
+backend/.env
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Data files
+backend/data/
+
+# Mac
+.DS_Store
+
+# Node
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+
+# Vercel
+.vercel
