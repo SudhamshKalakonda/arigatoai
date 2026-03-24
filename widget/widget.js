@@ -1,5 +1,5 @@
 (function() {
-  const API_URL = 'http://localhost:8000/api/ask';
+  const API_URL = 'https://arigatoai-backend.onrender.com/api/ask';
   const WIDGET_KEY = new URLSearchParams(document.currentScript.src.split('?')[1]).get('key') || 'arigato';
 
   const style = document.createElement('style');
