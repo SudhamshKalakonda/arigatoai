@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/stats")
+    fetch("https://arigatoai-backend.onrender.com/api/stats")
       .then((r) => r.json())
       .then(setStats)
       .catch(console.error);

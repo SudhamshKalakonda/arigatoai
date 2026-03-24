@@ -20,7 +20,7 @@ export default function DocumentsPage() {
     formData.append("firm_id", "arigato");
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload", {
+      const res = await fetch("https://arigatoai-backend.onrender.com/api/upload", {
         method: "POST",
         body: formData,
       });
