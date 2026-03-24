@@ -123,7 +123,7 @@
         <div class="aai-ai">Hi! I am ArigatoAI. Ask me anything about income tax, GST, EPF, or TDS.</div>
       </div>
       <div id="aai-input-row">
-        <input id="aai-input" type="text" placeholder="Ask any question "/>
+        <input id="aai-input" type="text" placeholder="Type your questions here..."/>
         <button id="aai-send">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/>
