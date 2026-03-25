@@ -33,7 +33,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://arigatoai-backend.onrender.com/api/ask",{
+      const res = await fetch("https://arigatoai-backend.onrender.com/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, firm_id: "arigato" }),
@@ -102,10 +102,13 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
 
-      <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div>
-          <div className="text-[#00BFA5] font-bold text-lg">ArigatoAI</div>
-          <div className="text-gray-500 text-xs">Tax & Compliance Assistant</div>
+      <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="ArigatoAI" className="w-9 h-9 rounded-full object-cover"/>
+          <div>
+            <div className="text-white font-bold text-base">ArigatoAI</div>
+            <div className="text-gray-500 text-xs">Tax & Compliance Assistant</div>
+          </div>
         </div>
         <div className="text-xs text-gray-600">Arigato Consultancy Services Pvt. Ltd.</div>
       </div>
@@ -114,13 +117,11 @@ export default function ChatPage() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "ai" && (
-              <div className="w-8 h-8 rounded-full bg-[#00BFA5] flex items-center justify-center text-white text-xs font-bold mr-3 flex-shrink-0 mt-1">
-                AI
-              </div>
+              <img src="/logo.png" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0 mt-1"/>
             )}
             <div className={`max-w-xl rounded-2xl px-4 py-3 ${
               msg.role === "user"
-                ? "bg-[#00BFA5] text-white rounded-br-sm"
+                ? "bg-[#0d9488] text-white rounded-br-sm"
                 : "bg-gray-900 border border-gray-800 text-gray-200 rounded-bl-sm"
             }`}>
               {msg.role === "ai" ? (
@@ -130,7 +131,7 @@ export default function ChatPage() {
               )}
               {msg.sources && msg.sources.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-gray-700">
-                  <div className="text-xs text-[#00BFA5]">
+                  <div className="text-xs text-[#0d9488]">
                     Source: {msg.sources.map(u => {
                       try { return new URL(u).hostname; }
                       catch { return u; }
@@ -154,14 +155,12 @@ export default function ChatPage() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#00BFA5] flex items-center justify-center text-white text-xs font-bold mr-3 flex-shrink-0">
-              AI
-            </div>
+            <img src="/logo.png" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"/>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1 items-center h-5">
-                <div className="w-2 h-2 bg-[#00BFA5] rounded-full animate-bounce" style={{animationDelay: "0ms"}}></div>
-                <div className="w-2 h-2 bg-[#00BFA5] rounded-full animate-bounce" style={{animationDelay: "150ms"}}></div>
-                <div className="w-2 h-2 bg-[#00BFA5] rounded-full animate-bounce" style={{animationDelay: "300ms"}}></div>
+                <div className="w-2 h-2 bg-[#0d9488] rounded-full animate-bounce" style={{animationDelay: "0ms"}}></div>
+                <div className="w-2 h-2 bg-[#0d9488] rounded-full animate-bounce" style={{animationDelay: "150ms"}}></div>
+                <div className="w-2 h-2 bg-[#0d9488] rounded-full animate-bounce" style={{animationDelay: "300ms"}}></div>
               </div>
             </div>
           </div>
@@ -169,19 +168,19 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-gray-800 bg-gray-900 px-4 py-4">
+      <div className="border-t border-gray-800 bg-gray-900 px-4 py-4 flex-shrink-0">
         <form onSubmit={sendMessage} className="max-w-3xl mx-auto flex gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about income tax, GST, TDS, EPF..."
-            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#00BFA5] placeholder-gray-600"
+            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#0d9488] placeholder-gray-600"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="bg-[#00BFA5] hover:bg-[#00897B] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl text-sm font-semibold transition-colors"
+            className="bg-[#0d9488] hover:bg-[#0f766e] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl text-sm font-semibold transition-colors"
           >
             Send
           </button>
