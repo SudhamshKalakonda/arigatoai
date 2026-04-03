@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ArigatoAI Admin",
-  description: "Admin dashboard for ArigatoAI",
+  title: "ArigatoAI",
+  description: "AI Tax Assistant for CA Firms",
+  icons: {
+    icon: "/logo.jpg",
+    apple: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({
