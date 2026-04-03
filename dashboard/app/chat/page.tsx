@@ -104,7 +104,7 @@ export default function ChatPage() {
 
       <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="ArigatoAI" className="w-9 h-9 rounded-full object-cover"/>
+          <img src="/logo.jpg" alt="ArigatoAI" className="w-9 h-9 rounded-full object-cover"/>
           <div>
             <div className="text-white font-bold text-base">ArigatoAI</div>
             <div className="text-gray-500 text-xs">Tax & Compliance Assistant</div>
@@ -117,7 +117,7 @@ export default function ChatPage() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "ai" && (
-              <img src="/logo.png" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0 mt-1"/>
+              <img src="/logo.jpg" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0 mt-1"/>
             )}
             <div className={`max-w-xl rounded-2xl px-4 py-3 ${
               msg.role === "user"
@@ -155,7 +155,7 @@ export default function ChatPage() {
 
         {loading && (
           <div className="flex justify-start">
-            <img src="/logo.png" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"/>
+            <img src="/logo.jpg" alt="AI" className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"/>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1 items-center h-5">
                 <div className="w-2 h-2 bg-[#0d9488] rounded-full animate-bounce" style={{animationDelay: "0ms"}}></div>
