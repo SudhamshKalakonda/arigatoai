@@ -1,18 +1,12 @@
 import os
-import asyncio
-import time
 from dotenv import load_dotenv
 from groq import Groq
-from pipeline.embedder import get_embedding
-from pipeline.pinecone_client import query_vectors
+from pipeline.pinecone_client import hybrid_search
+from pipeline.reranker import rerank
 
 load_dotenv()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-# Simple in-memory cache for frequent queries
-_cache = {}
-CACHE_TTL = 3600  # 1 hour
 
 SYSTEM_PROMPT = """You are ArigatoAI, a helpful assistant for CA (Chartered Accountant) firms in India.
 
@@ -31,22 +25,9 @@ STRICT RULES:
 6. Always recommend consulting the CA for complex matters"""
 
 def answer_question(question: str, firm_id: str = "arigato") -> dict:
-    # Cache check
-    cache_key = question.strip().lower()
-    if cache_key in _cache:
-        cached_time, cached_result = _cache[cache_key]
-        if time.time() - cached_time < CACHE_TTL:
-            cached_result["_cached"] = True
-            return cached_result
 
-    # Step 1: Embed query
-    question_embedding = get_embedding(question)
-
-    # Step 2: Pinecone retrieval
-    matches = query_vectors(
-        query_embedding=question_embedding,
-        top_k=5
-    )
+    # Step 1 — Hybrid search (vector + BM25)
+    matches = hybrid_search(query=question, top_k=10)
 
     if not matches:
         return {
@@ -55,25 +36,34 @@ def answer_question(question: str, firm_id: str = "arigato") -> dict:
             "confidence": 0.0
         }
 
+    # Step 2 — Re-rank to get top 3 most relevant chunks
+    reranked = rerank(query=question, chunks=matches, top_k=3)
+
+    # Step 3 — Build context from re-ranked chunks
     context_parts = []
     sources = []
 
-    for match in matches:
-        text = match["metadata"].get("text", "")
-        source_url = match["metadata"].get("source_url", "")
+    for match in reranked:
+        text = match.get("metadata", {}).get("text", "")
+        source_url = match.get("metadata", {}).get("source_url", "")
         if text:
             context_parts.append(text)
         if source_url and source_url not in sources:
-            # Filter out test/dummy URLs
-            if source_url and "test.com" not in source_url:
-                sources.append(source_url)
+            sources.append(source_url)
+
+    if not context_parts:
+        return {
+            "answer": "I don't have enough information on this. Please consult your CA directly.",
+            "sources": [],
+            "confidence": 0.0
+        }
 
     context = "\n\n".join(context_parts)
-    avg_score = sum(m["score"] for m in matches[:3]) / 3
+    avg_score = sum(m.get("rerank_score", 0) for m in reranked[:3]) / 3
 
-    # Step 3: Groq LLM — switched to 8b-instant for 3x speed
+    # Step 4 — Generate answer with Groq
     response = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",  # was llama-3.3-70b-versatile
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
@@ -84,13 +74,8 @@ def answer_question(question: str, firm_id: str = "arigato") -> dict:
 
     answer = response.choices[0].message.content
 
-    result = {
+    return {
         "answer": answer,
         "sources": sources[:3],
         "confidence": round(avg_score, 4)
     }
-
-    # Store in cache
-    _cache[cache_key] = (time.time(), result)
-
-    return result

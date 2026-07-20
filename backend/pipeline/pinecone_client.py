@@ -1,7 +1,8 @@
 import os
+import hashlib
 from dotenv import load_dotenv
 from pinecone import Pinecone
-from pipeline.embedder import get_embeddings_batch
+from pipeline.embedder import get_embeddings_batch, get_embedding
 from pipeline.chunker import Chunk
 
 load_dotenv()
@@ -23,9 +24,8 @@ def upsert_chunks(chunks: list[Chunk]):
 
     index = get_index()
     total_upserted = 0
-    embed_batch_size = 50  # Stay under OpenAI 300k token limit
-    pinecone_batch_size = 100  # Pinecone recommended batch size
-
+    embed_batch_size = 50
+    pinecone_batch_size = 100
     all_vectors = []
 
     for i in range(0, len(chunks), embed_batch_size):
@@ -60,4 +60,60 @@ def query_vectors(query_embedding: list[float], top_k: int = 10, filter: dict = 
         include_metadata=True,
         filter=filter
     )
-    return results["matches"]
+    # Convert ScoredVector objects to plain dicts
+    matches = []
+    for m in results["matches"]:
+        matches.append({
+            "id": m["id"],
+            "score": m["score"],
+            "metadata": m["metadata"]
+        })
+    return matches
+
+def hybrid_search(query: str, top_k: int = 5, firm_id: str = None) -> list:
+    from pipeline.bm25_index import search_bm25
+
+    # Step 1 — Vector search
+    query_embedding = get_embedding(query)
+    filter_dict = {"firm_id": firm_id} if firm_id else None
+    vector_results = query_vectors(
+        query_embedding=query_embedding,
+        top_k=top_k * 2,
+        filter=filter_dict
+    )
+
+    # Step 2 — BM25 keyword search
+    bm25_results = search_bm25(query, top_k=top_k * 2)
+
+    # Step 3 — Reciprocal Rank Fusion
+    scores = {}
+
+    for rank, result in enumerate(vector_results):
+        doc_id = result["id"]
+        scores[doc_id] = scores.get(doc_id, 0) + 1 / (rank + 1)
+
+    for rank, result in enumerate(bm25_results):
+        doc_id = hashlib.md5(result["text"][:50].encode()).hexdigest()
+        scores[doc_id] = scores.get(doc_id, 0) + 1 / (rank + 1)
+
+    # Step 4 — Sort by combined score
+    sorted_ids = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+    top_ids = {doc_id for doc_id, _ in sorted_ids}
+
+    # Step 5 — Build final results from vector results first
+    final_results = [r for r in vector_results if r["id"] in top_ids]
+
+    # Fill remaining slots from BM25 if needed
+    if len(final_results) < top_k:
+        for r in bm25_results:
+            if len(final_results) >= top_k:
+                break
+            bm25_id = hashlib.md5(r["text"][:50].encode()).hexdigest()
+            if bm25_id not in {res["id"] for res in final_results}:
+                final_results.append({
+                    "id": bm25_id,
+                    "score": r["bm25_score"] / 10,
+                    "metadata": {**r["metadata"], "text": r["text"]}
+                })
+
+    return final_results[:top_k]
