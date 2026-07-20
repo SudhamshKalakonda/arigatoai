@@ -3,23 +3,28 @@ from pydantic import BaseModel
 from api.rag import answer_question
 from pipeline.pdf_parser import parse_pdf_bytes
 from pipeline.pinecone_client import upsert_chunks, get_index
+from pipeline.semantic_cache import get_cache_stats
+from pipeline.memory import get_memory_stats
 
 router = APIRouter()
 
 class AskRequest(BaseModel):
     question: str
     firm_id: str = "arigato"
+    session_id: str = "default"
 
 class AskResponse(BaseModel):
     answer: str
     sources: list[str]
     confidence: float
+    cached: bool = False
 
 @router.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest):
     result = answer_question(
         question=request.question,
-        firm_id=request.firm_id
+        firm_id=request.firm_id,
+        session_id=request.session_id
     )
     return AskResponse(**result)
 
@@ -44,7 +49,6 @@ async def upload_pdf(
         return {"error": "No text could be extracted from this PDF"}
 
     upsert_chunks(chunks)
-
     stats = get_index().describe_index_stats()
 
     return {
@@ -57,7 +61,11 @@ async def upload_pdf(
 def stats():
     index = get_index()
     s = index.describe_index_stats()
+    cache_stats = get_cache_stats()
+    memory_stats = get_memory_stats()
     return {
         "total_vectors": s["total_vector_count"],
-        "index_fullness": s["index_fullness"]
+        "index_fullness": s["index_fullness"],
+        "cache": cache_stats,
+        "memory": memory_stats
     }

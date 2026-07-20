@@ -3,8 +3,11 @@ from dotenv import load_dotenv
 from groq import Groq
 from pipeline.pinecone_client import hybrid_search
 from pipeline.reranker import rerank
-from pipeline.query_rewriter import rewrite_query
 from pipeline.compressor import compress_chunks
+from pipeline.query_rewriter import rewrite_query
+from pipeline.semantic_cache import get_cached, set_cached
+from pipeline.memory import get_session_history, add_to_session
+from pipeline.embedder import get_embedding
 
 load_dotenv()
 
@@ -24,32 +27,46 @@ STRICT RULES:
 3. Always mention the source of your answer
 4. Be concise and clear — clients are non-technical
 5. Never give wrong information — when unsure, say so
-6. Always recommend consulting the CA for complex matters"""
+6. Always recommend consulting the CA for complex matters
+7. Use conversation history to answer follow-up questions"""
 
-def answer_question(question: str, firm_id: str = "arigato") -> dict:
+def answer_question(question: str, firm_id: str = "arigato", session_id: str = "default") -> dict:
 
+    # Step 0 — Embed question (needed for semantic cache)
+    question_embedding = get_embedding(question)
+
+    # Step 1 — Check semantic cache
+    cached = get_cached(question, question_embedding)
+    if cached:
+        # Still save to session memory even on cache hit so future follow-ups work
+        add_to_session(session_id, question, cached["answer"])
+        return {**cached, "cached": True}
+
+    # Step 2 — Rewrite vague queries
     search_query = rewrite_query(question)
 
-    # Step 1 — Hybrid search (vector + BM25)
-    matches = hybrid_search(query=question, top_k=10)
+    # Step 3 — Hybrid search
+    matches = hybrid_search(query=search_query, top_k=10)
 
     if not matches:
         return {
             "answer": "I don't have enough information on this. Please consult your CA directly.",
             "sources": [],
-            "confidence": 0.0
+            "confidence": 0.0,
+            "cached": False
         }
 
-    # Step 2 — Re-rank to get top 3 most relevant chunks
+    # Step 4 — Re-rank
     reranked = rerank(query=question, chunks=matches, top_k=3)
 
+    # Step 5 — Contextual compression
     compressed = compress_chunks(query=search_query, chunks=reranked, max_sentences=4)
 
-    # Step 3 — Build context from re-ranked chunks
+    # Step 6 — Build context
     context_parts = []
     sources = []
 
-    for match in reranked:
+    for match in compressed:
         text = match.get("metadata", {}).get("text", "")
         source_url = match.get("metadata", {}).get("source_url", "")
         if text:
@@ -61,27 +78,43 @@ def answer_question(question: str, firm_id: str = "arigato") -> dict:
         return {
             "answer": "I don't have enough information on this. Please consult your CA directly.",
             "sources": [],
-            "confidence": 0.0
+            "confidence": 0.0,
+            "cached": False
         }
 
     context = "\n\n".join(context_parts)
     avg_score = sum(m.get("rerank_score", 0) for m in reranked[:3]) / 3
 
-    # Step 4 — Generate answer with Groq
+    # Step 7 — Load session memory
+    history = get_session_history(session_id)
+
+    # Step 8 — Build messages with history + context
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(history)
+    messages.append({
+        "role": "user",
+        "content": f"Context:\n{context}\n\nQuestion: {question}"
+    })
+
+    # Step 9 — Generate answer with Groq
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
-        ],
+        messages=messages,
         temperature=0.1,
-        max_tokens=500
+        max_tokens=500 
     )
 
     answer = response.choices[0].message.content
 
-    return {
+    result = {
         "answer": answer,
         "sources": sources[:3],
-        "confidence": round(avg_score, 4)
+        "confidence": round(avg_score, 4),
+        "cached": False
     }
+
+    # Step 10 — Save to session memory + semantic cache
+    add_to_session(session_id, question, answer)
+    set_cached(question, question_embedding, result)
+
+    return result

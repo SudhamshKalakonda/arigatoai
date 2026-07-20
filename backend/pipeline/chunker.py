@@ -1,6 +1,6 @@
 import re
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from nltk.tokenize import sent_tokenize
 
 @dataclass
@@ -9,17 +9,16 @@ class Chunk:
     text: str
     metadata: dict
 
-# Clause boundary patterns for Indian tax documents
 CLAUSE_PATTERNS = [
-    r'Section\s+\d+[A-Z]*',      # Section 44AB, Section 80C
-    r'Chapter\s+[IVXLC]+',        # Chapter IV, Chapter VI
-    r'Rule\s+\d+[A-Z]*',          # Rule 6DD
-    r'GSTR[-\s]?\d+[A-Z]*',       # GSTR-1, GSTR-3B
-    r'ITR[-\s]?\d+[A-Z]*',        # ITR-1, ITR-4
-    r'Form\s+\d+[A-Z]*',          # Form 16, Form 26AS
-    r'Schedule\s+[IVXLC]+',       # Schedule III
-    r'Article\s+\d+',             # Article 246
-    r'Clause\s+\d+',              # Clause 3
+    r'Section\s+\d+[A-Z]*',
+    r'Chapter\s+[IVXLC]+',
+    r'Rule\s+\d+[A-Z]*',
+    r'GSTR[-\s]?\d+[A-Z]*',
+    r'ITR[-\s]?\d+[A-Z]*',
+    r'Form\s+\d+[A-Z]*',
+    r'Schedule\s+[IVXLC]+',
+    r'Article\s+\d+',
+    r'Clause\s+\d+',
 ]
 
 CLAUSE_REGEX = re.compile('|'.join(CLAUSE_PATTERNS), re.IGNORECASE)
@@ -27,11 +26,9 @@ CLAUSE_REGEX = re.compile('|'.join(CLAUSE_PATTERNS), re.IGNORECASE)
 def clean_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
-    text = text.strip()
-    return text
+    return text.strip()
 
 def is_clause_boundary(sentence: str) -> bool:
-    """Check if sentence starts a new legal clause or section."""
     return bool(CLAUSE_REGEX.match(sentence.strip()))
 
 def chunk_text(
@@ -43,9 +40,8 @@ def chunk_text(
     overlap_sentences: int = 2
 ) -> list[Chunk]:
     text = clean_text(text)
-
-    # Split into sentences using NLTK
     sentences = sent_tokenize(text)
+
     if not sentences:
         return []
 
@@ -55,13 +51,10 @@ def chunk_text(
 
     for i, sentence in enumerate(sentences):
         words_in_sentence = len(sentence.split())
-        is_boundary = is_clause_boundary(sentence)
+        is_clause = is_clause_boundary(sentence)
 
-        # Start new chunk if:
-        # 1. Current chunk is full AND we hit a clause boundary
-        # 2. Current chunk exceeds max size
         should_split = (
-            (current_word_count >= chunk_size and is_boundary) or
+            (current_word_count >= chunk_size and is_clause) or
             (current_word_count >= chunk_size * 1.5)
         )
 
@@ -84,14 +77,12 @@ def chunk_text(
                     }
                 ))
 
-            # Keep last N sentences as overlap
             current_sentences = current_sentences[-overlap_sentences:] if overlap_sentences > 0 else []
             current_word_count = sum(len(s.split()) for s in current_sentences)
 
         current_sentences.append(sentence)
         current_word_count += words_in_sentence
 
-    # Add remaining sentences as final chunk
     if current_sentences:
         chunk_text_str = " ".join(current_sentences)
         if len(chunk_text_str.strip()) >= 50:
