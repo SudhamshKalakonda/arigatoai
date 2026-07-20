@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from groq import Groq
 from pipeline.pinecone_client import hybrid_search
 from pipeline.reranker import rerank
+from pipeline.query_rewriter import rewrite_query
+
 
 load_dotenv()
 
@@ -25,6 +27,8 @@ STRICT RULES:
 6. Always recommend consulting the CA for complex matters"""
 
 def answer_question(question: str, firm_id: str = "arigato") -> dict:
+
+    search_query = rewrite_query(question)
 
     # Step 1 — Hybrid search (vector + BM25)
     matches = hybrid_search(query=question, top_k=10)
