@@ -4,7 +4,7 @@ from groq import Groq
 from pipeline.pinecone_client import hybrid_search
 from pipeline.reranker import rerank
 from pipeline.query_rewriter import rewrite_query
-
+from pipeline.compressor import compress_chunks
 
 load_dotenv()
 
@@ -42,6 +42,8 @@ def answer_question(question: str, firm_id: str = "arigato") -> dict:
 
     # Step 2 — Re-rank to get top 3 most relevant chunks
     reranked = rerank(query=question, chunks=matches, top_k=3)
+
+    compressed = compress_chunks(query=search_query, chunks=reranked, max_sentences=4)
 
     # Step 3 — Build context from re-ranked chunks
     context_parts = []
