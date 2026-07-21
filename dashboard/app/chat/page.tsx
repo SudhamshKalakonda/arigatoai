@@ -9,6 +9,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "ai",
@@ -33,10 +34,10 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://arigatoai-backend.onrender.com/api/ask", {
+      const res = await fetch("http://localhost:8000/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, firm_id: "arigato" }),
+        body: JSON.stringify({ question: q, firm_id: "arigato", session_id: sessionId }),
       });
       const data = await res.json();
       setMessages((prev) => [
@@ -59,6 +60,7 @@ export default function ChatPage() {
   }
 
   function formatText(text: string) {
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
     const lines = text.split(/\n|(?=\d+\.\s)/);
     const elements: React.ReactNode[] = [];
     let olItems: string[] = [];

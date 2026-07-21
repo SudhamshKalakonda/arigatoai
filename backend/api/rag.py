@@ -1,4 +1,6 @@
 import os
+import uuid
+import time
 from dotenv import load_dotenv
 from groq import Groq
 from pipeline.pinecone_client import hybrid_search
@@ -8,8 +10,10 @@ from pipeline.query_rewriter import rewrite_query
 from pipeline.semantic_cache import get_cached, set_cached
 from pipeline.memory import get_session_history, add_to_session
 from pipeline.embedder import get_embedding
+from database.registry import log_query, init_db
 
 load_dotenv()
+init_db()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -32,14 +36,29 @@ STRICT RULES:
 
 def answer_question(question: str, firm_id: str = "arigato", session_id: str = "default") -> dict:
 
-    # Step 0 — Embed question (needed for semantic cache)
+    start_time = time.time()
+    query_id = str(uuid.uuid4())
+
+    # Step 0 — Embed question
     question_embedding = get_embedding(question)
 
     # Step 1 — Check semantic cache
     cached = get_cached(question, question_embedding)
     if cached:
-        # Still save to session memory even on cache hit so future follow-ups work
         add_to_session(session_id, question, cached["answer"])
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        log_query(
+            query_id=query_id,
+            session_id=session_id,
+            question=question,
+            rewritten_query=question,
+            answer=cached["answer"],
+            confidence=cached.get("confidence", 0),
+            cached=True,
+            latency_ms=elapsed_ms,
+            sources=cached.get("sources", []),
+            firm_id=firm_id
+        )
         return {**cached, "cached": True}
 
     # Step 2 — Rewrite vague queries
@@ -101,7 +120,7 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
         model="llama-3.3-70b-versatile",
         messages=messages,
         temperature=0.1,
-        max_tokens=500 
+        max_tokens=500
     )
 
     answer = response.choices[0].message.content
@@ -116,5 +135,20 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
     # Step 10 — Save to session memory + semantic cache
     add_to_session(session_id, question, answer)
     set_cached(question, question_embedding, result)
+
+    # Step 11 — Log query to database
+    elapsed_ms = int((time.time() - start_time) * 1000)
+    log_query(
+        query_id=query_id,
+        session_id=session_id,
+        question=question,
+        rewritten_query=search_query,
+        answer=answer,
+        confidence=round(avg_score, 4),
+        cached=False,
+        latency_ms=elapsed_ms,
+        sources=sources[:3],
+        firm_id=firm_id
+    )
 
     return result
