@@ -110,3 +110,57 @@ SUPPORTED_FORMATS = ["pdf", "docx", "txt", "xlsx", "xls", "csv"]
 def is_supported(filename: str) -> bool:
     ext = filename.lower().split(".")[-1]
     return ext in SUPPORTED_FORMATS
+def clean_tables_with_gpt(text: str) -> str:
+    """
+    Find markdown tables in text and convert them to
+    readable sentences using GPT-4o mini.
+    """
+    import re
+    import os
+    from openai import OpenAI
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    # Find markdown tables
+    table_pattern = re.compile(
+        r'(\|.+\|[\s\S]*?)(?=\n\n|\n#|\Z)',
+        re.MULTILINE
+    )
+
+    tables = table_pattern.findall(text)
+    if not tables:
+        return text
+
+    print(f"  Found {len(tables)} tables — cleaning with GPT-4o mini...")
+
+    for table in tables:
+        if len(table.strip()) < 50:
+            continue
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"""Convert this table from an Indian tax document into clear, readable sentences. 
+Each row should become one or two sentences.
+Include all numbers, rates, thresholds and section numbers.
+Do not add any information not in the table.
+Do not use bullet points or lists — use plain sentences only.
+
+Table:
+{table}
+
+Output as plain text sentences:"""
+                }],
+                temperature=0,
+                max_tokens=1000
+            )
+            clean = response.choices[0].message.content.strip()
+            text = text.replace(table, clean)
+            print(f"  Cleaned table ({len(table)} → {len(clean)} chars)")
+        except Exception as e:
+            print(f"  Table cleaning failed: {e}")
+            continue
+
+    return text

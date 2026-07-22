@@ -3,11 +3,11 @@ import uuid
 import time
 from dotenv import load_dotenv
 from groq import Groq
+from langfuse import Langfuse, observe
 from pipeline.pinecone_client import hybrid_search
 from pipeline.reranker import rerank
 from pipeline.compressor import compress_chunks
 from pipeline.query_rewriter import rewrite_query
-from pipeline.semantic_cache import get_cached, set_cached
 from pipeline.memory import get_session_history, add_to_session
 from pipeline.embedder import get_embedding
 from database.registry import log_query, init_db
@@ -16,6 +16,11 @@ load_dotenv()
 init_db()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+langfuse = Langfuse(
+    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+    host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+)
 
 SYSTEM_PROMPT = """You are ArigatoAI, a helpful assistant for CA (Chartered Accountant) firms in India.
 
@@ -34,38 +39,23 @@ STRICT RULES:
 6. Always recommend consulting the CA for complex matters
 7. Use conversation history to answer follow-up questions"""
 
+@observe()
 def answer_question(question: str, firm_id: str = "arigato", session_id: str = "default") -> dict:
 
     start_time = time.time()
     query_id = str(uuid.uuid4())
 
-    # Step 0 — Embed question
-    question_embedding = get_embedding(question)
-
-    # Step 1 — Check semantic cache
-    cached = get_cached(question, question_embedding)
-    if cached:
-        add_to_session(session_id, question, cached["answer"])
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        log_query(
-            query_id=query_id,
-            session_id=session_id,
-            question=question,
-            rewritten_query=question,
-            answer=cached["answer"],
-            confidence=cached.get("confidence", 0),
-            cached=True,
-            latency_ms=elapsed_ms,
-            sources=cached.get("sources", []),
-            firm_id=firm_id
-        )
-        return {**cached, "cached": True}
-
-    # Step 2 — Rewrite vague queries
+    # Step 1 — Rewrite vague queries
     search_query = rewrite_query(question)
 
-    # Step 3 — Hybrid search
-    matches = hybrid_search(query=search_query, top_k=10)
+    # Step 2 — Hybrid search
+    with langfuse.start_as_current_observation(
+        name="hybrid_search",
+        as_type="retriever",
+        input={"query": search_query}
+    ):
+        matches = hybrid_search(query=search_query, top_k=10)
+        langfuse.update_current_span(output={"matches": len(matches)})
 
     if not matches:
         return {
@@ -75,13 +65,19 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
             "cached": False
         }
 
-    # Step 4 — Re-rank
-    reranked = rerank(query=question, chunks=matches, top_k=3)
+    # Step 3 — Re-rank
+    with langfuse.start_as_current_observation(
+        name="rerank",
+        as_type="span",
+        input={"chunks": len(matches)}
+    ):
+        reranked = rerank(query=question, chunks=matches, top_k=3)
+        langfuse.update_current_span(output={"reranked": len(reranked)})
 
-    # Step 5 — Contextual compression
+    # Step 4 — Contextual compression
     compressed = compress_chunks(query=search_query, chunks=reranked, max_sentences=4)
 
-    # Step 6 — Build context
+    # Step 5 — Build context
     context_parts = []
     sources = []
 
@@ -104,10 +100,10 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
     context = "\n\n".join(context_parts)
     avg_score = sum(m.get("rerank_score", 0) for m in reranked[:3]) / 3
 
-    # Step 7 — Load session memory
+    # Step 6 — Load session memory
     history = get_session_history(session_id)
 
-    # Step 8 — Build messages with history + context
+    # Step 7 — Build messages
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(history)
     messages.append({
@@ -115,15 +111,29 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
         "content": f"Context:\n{context}\n\nQuestion: {question}"
     })
 
-    # Step 9 — Generate answer with Groq
-    response = groq_client.chat.completions.create(
+    # Step 8 — Generate answer with Groq
+    with langfuse.start_as_current_observation(
+        name="groq_generation",
+        as_type="generation",
         model="llama-3.3-70b-versatile",
-        messages=messages,
-        temperature=0.1,
-        max_tokens=500
-    )
+        input=messages
+    ):
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.1,
+            max_tokens=500
+        )
+        answer = response.choices[0].message.content
+        langfuse.update_current_generation(
+            output=answer,
+            usage_details={
+                "input": response.usage.prompt_tokens,
+                "output": response.usage.completion_tokens
+            }
+        )
 
-    answer = response.choices[0].message.content
+    elapsed_ms = int((time.time() - start_time) * 1000)
 
     result = {
         "answer": answer,
@@ -132,12 +142,10 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
         "cached": False
     }
 
-    # Step 10 — Save to session memory + semantic cache
+    # Step 9 — Save to session memory
     add_to_session(session_id, question, answer)
-    set_cached(question, question_embedding, result)
 
-    # Step 11 — Log query to database
-    elapsed_ms = int((time.time() - start_time) * 1000)
+    # Step 10 — Log to SQLite
     log_query(
         query_id=query_id,
         session_id=session_id,
@@ -149,6 +157,17 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
         latency_ms=elapsed_ms,
         sources=sources[:3],
         firm_id=firm_id
+    )
+
+    # Step 11 — Update Langfuse trace
+    langfuse.set_current_trace_io(
+        input={"question": question},
+        output={
+            "answer": answer,
+            "confidence": round(avg_score, 4),
+            "latency_ms": elapsed_ms,
+            "sources": sources[:3]
+        }
     )
 
     return result

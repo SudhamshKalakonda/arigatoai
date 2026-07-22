@@ -80,6 +80,11 @@ def index_file(
         print(f"  Extraction failed: {e}")
         return {"status": "failed", "reason": str(e)}
 
+    # Step 2.5 — Clean tables with GPT-4o mini
+    from pipeline.extractor import clean_tables_with_gpt
+    text = clean_tables_with_gpt(text)
+    print(f"  After table cleaning: {len(text)} characters")
+
     # Step 3 — Detect category and metadata
     category, subcategory = detect_category(text[:2000])
     credibility = detect_credibility(source_url or f"upload://{filename}")
