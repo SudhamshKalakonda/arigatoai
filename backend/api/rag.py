@@ -115,11 +115,11 @@ def answer_question(question: str, firm_id: str = "arigato", session_id: str = "
     with langfuse.start_as_current_observation(
         name="groq_generation",
         as_type="generation",
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         input=messages
     ):
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
             messages=messages,
             temperature=0.1,
             max_tokens=500
