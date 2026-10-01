@@ -163,7 +163,3 @@ Built for Arigato Consultancy Services Pvt. Ltd., Hyderabad.
 
 ---
 
-## License
-
-MIT
-# Logo updated
