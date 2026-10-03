@@ -2,13 +2,6 @@
 
 > A 24/7 AI-powered chatbot that answers client tax and compliance questions instantly. Built with RAG pipeline, deployed on Render + Vercel.
 
-
-## Live Demo
-
-- **Chat:** https://arigatoai-six.vercel.app/chat
-- **Admin:** https://arigatoai-six.vercel.app
-- **API:** https://arigatoai-backend.onrender.com/docs
-
 ---
 
 ## The Problem
