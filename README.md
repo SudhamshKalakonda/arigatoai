@@ -1,5 +1,6 @@
 # ArigatoAI — AI Tax Assistant for CA Firms 
 
+
 > A 24/7 AI-powered chatbot that answers client tax and compliance questions instantly. Built with RAG pipeline, deployed on Render + Vercel.
 
 ---
